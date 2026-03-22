@@ -2,7 +2,7 @@
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useRef } from "react";
-import { Home, ScanLine, Salad, Users, ArrowLeft, Eye, Share2, Download } from "lucide-react";
+import { Home, ScanLine, Salad, Users, ArrowLeft, Eye, Share2, Download, TrendingUp } from "lucide-react";
 
 type Risk = "LOW" | "MODERATE" | "HIGH";
 interface Result { risk: Risk; confidence: number; hemoglobin: number; message: string; pregnancyMode?: boolean; symptomScore?: number; }
@@ -255,7 +255,7 @@ export default function ResultPage() {
     { icon: <Home size={22} />, label: "Home", path: "/", active: false },
     { icon: <ScanLine size={22} />, label: "Scan", path: "/scan", active: false },
     { icon: <Salad size={22} />, label: "Diet", path: "/thali", active: false },
-    { icon: <Users size={22} />, label: "ASHA", path: "/asha", active: false },
+    { icon: <TrendingUp size={22} />, label: "Track", path: "/recovery", active: false },
   ];
 
   return (

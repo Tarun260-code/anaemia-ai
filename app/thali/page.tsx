@@ -2,7 +2,7 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { useState, useMemo } from "react";
-import { Home, ScanLine, Salad, Users, ArrowLeft, MapPin, Filter } from "lucide-react";
+import { Home, ScanLine, Salad, Users, ArrowLeft, MapPin, Filter, TrendingUp } from "lucide-react";
 
 const foods = [
   // Tamil Nadu
@@ -90,7 +90,7 @@ export default function ThaliPage() {
     { icon: <Home size={22} />, label: "Home", path: "/", active: false },
     { icon: <ScanLine size={22} />, label: "Scan", path: "/scan", active: false },
     { icon: <Salad size={22} />, label: "Diet", path: "/thali", active: true },
-    { icon: <Users size={22} />, label: "ASHA", path: "/asha", active: false },
+    { icon: <TrendingUp size={22} />, label: "Track", path: "/recovery", active: false },
   ];
 
   return (

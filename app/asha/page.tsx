@@ -70,7 +70,7 @@ export default function AshaPage() {
     { icon: <Home size={22} />, label: "Home", path: "/", active: false },
     { icon: <ScanLine size={22} />, label: "Scan", path: "/scan", active: false },
     { icon: <Salad size={22} />, label: "Diet", path: "/thali", active: false },
-    { icon: <Users size={22} />, label: "ASHA", path: "/asha", active: true },
+    { icon: <TrendingUp size={22} />, label: "Track", path: "/recovery", active: false },
   ];
 
   return (

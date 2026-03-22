@@ -2,7 +2,7 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
-import { Eye, Home, ScanLine, Salad, Users, ArrowLeft, Zap, Upload, Camera, Baby, ChevronRight, CheckCircle } from "lucide-react";
+import { Eye, Home, ScanLine, Salad, Users, ArrowLeft, Zap, Upload, Camera, Baby, ChevronRight, CheckCircle, TrendingUp } from "lucide-react";
 import { createClient } from '@supabase/supabase-js';
 
 const supabase = createClient(
@@ -79,7 +79,7 @@ export default function ScanPage() {
     try {
       const key = process.env.NEXT_PUBLIC_GEMINI_API_KEY || "";
       const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${key}`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -94,10 +94,7 @@ export default function ScanPage() {
         }
       );
       const data = await res.json();
-      console.log("GEMINI STATUS:", res.status);
-      console.log("GEMINI DATA:", JSON.stringify(data).slice(0, 500));
       const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
-      console.log("GEMINI TEXT:", text);
       const match = text.match(/\{[\s\S]*\}/);
 
       let result = { risk: "MODERATE", confidence: 74, hemoglobin: 10.8, message: "Analysis complete. See a doctor for confirmation." };
@@ -125,8 +122,7 @@ export default function ScanPage() {
         location: 'Kanchipuram'
       }]);
 
-    } catch (err) {
-      console.log("GEMINI CATCH ERROR:", err);
+    } catch {
       const fallback = { risk: "MODERATE", confidence: 74, hemoglobin: 10.8, message: "Analysis complete. See a doctor for confirmation.", pregnancyMode, symptomScore };
       localStorage.setItem("anaemia_result", JSON.stringify(fallback));
       await supabase.from('scans').insert([{ risk: fallback.risk, confidence: fallback.confidence, hemoglobin: fallback.hemoglobin, message: fallback.message, location: 'Kanchipuram' }]);
@@ -139,7 +135,7 @@ export default function ScanPage() {
     { icon: <Home size={22} />, label: "Home", path: "/", active: false },
     { icon: <ScanLine size={22} />, label: "Scan", path: "/scan", active: true },
     { icon: <Salad size={22} />, label: "Diet", path: "/thali", active: false },
-    { icon: <Users size={22} />, label: "ASHA", path: "/asha", active: false },
+    { icon: <TrendingUp size={22} />, label: "Track", path: "/recovery", active: false },
   ];
 
   return (

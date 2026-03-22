@@ -2,7 +2,7 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
-import { Eye, Shield, Clock, Home, ScanLine, Salad, Users } from "lucide-react";
+import { Eye, Shield, Clock, Home, ScanLine, Salad, Users, TrendingUp } from "lucide-react";
 
 type Lang = "EN" | "TM" | "HI";
 
@@ -73,7 +73,7 @@ export default function HomePage() {
     { icon: <Home size={22} />, label: "Home", path: "/", active: true },
     { icon: <ScanLine size={22} />, label: "Scan", path: "/scan", active: false },
     { icon: <Salad size={22} />, label: "Diet", path: "/thali", active: false },
-    { icon: <Users size={22} />, label: "ASHA", path: "/asha", active: false },
+    { icon: <TrendingUp size={22} />, label: "Track", path: "/recovery", active: false },
   ];
 
   return (
