@@ -1,67 +1,130 @@
-import * as React from "react"
-import { cva, type VariantProps } from "class-variance-authority"
-import { Slot } from "radix-ui"
+"use client";
 
-import { cn } from "@/lib/utils"
+import { cva, type VariantProps } from "class-variance-authority";
+import { motion, type Variants } from "framer-motion";
+import * as React from "react";
+import { cn } from "@/lib/utils";
 
-const buttonVariants = cva(
-  "group/button inline-flex shrink-0 items-center justify-center rounded-lg border border-transparent bg-clip-padding text-sm font-medium whitespace-nowrap transition-all outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+const buttonVariants: Variants = {
+  initial: { scale: 1, rotateX: 0 },
+  hover: { scale: 1.02, rotateX: -2, transition: { type: "spring", stiffness: 400, damping: 10 } },
+  tap: { scale: 0.98, rotateX: 2, transition: { type: "spring", stiffness: 400, damping: 10 } },
+};
+
+const shimmerVariants: Variants = {
+  initial: { x: "-100%" },
+  animate: { x: "100%", transition: { duration: 1.5, ease: "easeInOut", repeat: Infinity, repeatDelay: 3 } },
+};
+
+const animatedButtonVariants = cva(
+  ["group relative inline-flex items-center justify-center whitespace-nowrap rounded-2xl text-sm font-semibold",
+   "transition-all duration-200 ease-in-out outline-offset-2",
+   "disabled:pointer-events-none disabled:opacity-50 overflow-hidden transform-gpu cursor-pointer"],
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground [a]:hover:bg-primary/80",
-        outline:
-          "border-border bg-background hover:bg-muted hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground dark:border-input dark:bg-input/30 dark:hover:bg-input/50",
-        secondary:
-          "bg-secondary text-secondary-foreground hover:bg-secondary/80 aria-expanded:bg-secondary aria-expanded:text-secondary-foreground",
-        ghost:
-          "hover:bg-muted hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground dark:hover:bg-muted/50",
-        destructive:
-          "bg-destructive/10 text-destructive hover:bg-destructive/20 focus-visible:border-destructive/40 focus-visible:ring-destructive/20 dark:bg-destructive/20 dark:hover:bg-destructive/30 dark:focus-visible:ring-destructive/40",
-        link: "text-primary underline-offset-4 hover:underline",
+        default: ["bg-[#FF2D4E] text-white shadow-lg shadow-red-500/30 hover:shadow-xl hover:shadow-red-500/50 border border-red-400/20"],
+        outline: ["border-2 border-[#FF2D4E]/40 bg-transparent backdrop-blur-sm text-white hover:bg-[#FF2D4E]/10 hover:border-[#FF2D4E]"],
+        gradient: ["bg-gradient-to-r from-[#C41230] via-[#FF2D4E] to-[#FF6B6B] bg-[length:200%_100%] text-white shadow-lg shadow-red-500/30"],
+        gold: ["bg-gradient-to-r from-[#D4A843] via-[#FFD166] to-[#F4A261] text-[#1a0a0b] shadow-lg shadow-yellow-500/30 font-bold"],
+        ghost: ["bg-transparent text-white hover:bg-white/5"],
       },
       size: {
-        default:
-          "h-8 gap-1.5 px-2.5 has-data-[icon=inline-end]:pr-2 has-data-[icon=inline-start]:pl-2",
-        xs: "h-6 gap-1 rounded-[min(var(--radius-md),10px)] px-2 text-xs in-data-[slot=button-group]:rounded-lg has-data-[icon=inline-end]:pr-1.5 has-data-[icon=inline-start]:pl-1.5 [&_svg:not([class*='size-'])]:size-3",
-        sm: "h-7 gap-1 rounded-[min(var(--radius-md),12px)] px-2.5 text-[0.8rem] in-data-[slot=button-group]:rounded-lg has-data-[icon=inline-end]:pr-1.5 has-data-[icon=inline-start]:pl-1.5 [&_svg:not([class*='size-'])]:size-3.5",
-        lg: "h-9 gap-1.5 px-2.5 has-data-[icon=inline-end]:pr-3 has-data-[icon=inline-start]:pl-3",
-        icon: "size-8",
-        "icon-xs":
-          "size-6 rounded-[min(var(--radius-md),10px)] in-data-[slot=button-group]:rounded-lg [&_svg:not([class*='size-'])]:size-3",
-        "icon-sm":
-          "size-7 rounded-[min(var(--radius-md),12px)] in-data-[slot=button-group]:rounded-lg",
-        "icon-lg": "size-9",
+        sm: "h-9 px-4 text-xs gap-1.5",
+        md: "h-12 px-6 text-sm gap-2",
+        lg: "h-14 px-8 text-base gap-2.5 w-full",
       },
     },
-    defaultVariants: {
-      variant: "default",
-      size: "default",
-    },
+    defaultVariants: { variant: "default", size: "md" },
   }
-)
+);
 
-function Button({
-  className,
-  variant = "default",
-  size = "default",
-  asChild = false,
-  ...props
-}: React.ComponentProps<"button"> &
-  VariantProps<typeof buttonVariants> & {
-    asChild?: boolean
-  }) {
-  const Comp = asChild ? Slot.Root : "button"
-
-  return (
-    <Comp
-      data-slot="button"
-      data-variant={variant}
-      data-size={size}
-      className={cn(buttonVariants({ variant, size, className }))}
-      {...props}
-    />
-  )
+export interface AnimatedButtonProps
+  extends Omit<React.ButtonHTMLAttributes<HTMLButtonElement>,
+    'onDrag' | 'onDragStart' | 'onDragEnd' | 'onAnimationStart' | 'onAnimationEnd' | 'onAnimationIteration'>,
+    VariantProps<typeof animatedButtonVariants> {
+  label: string;
+  iconLeft?: React.ReactNode;
+  iconRight?: React.ReactNode;
+  loading?: boolean;
+  className?: string;
+  onClick?: () => void;
 }
 
-export { Button, buttonVariants }
+const AnimatedButton = React.forwardRef<HTMLButtonElement, AnimatedButtonProps>(
+  ({ label, variant, size, iconLeft, iconRight, loading = false, className, onClick, disabled, ...props }, ref) => {
+    const [isHovered, setIsHovered] = React.useState(false);
+    const [ripples, setRipples] = React.useState<Array<{ id: number; x: number; y: number }>>([]);
+
+    const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
+      if (loading || disabled) return;
+      const rect = event.currentTarget.getBoundingClientRect();
+      const x = event.clientX - rect.left;
+      const y = event.clientY - rect.top;
+      const newRipple = { id: Date.now(), x, y };
+      setRipples((prev) => [...prev, newRipple]);
+      setTimeout(() => setRipples((prev) => prev.filter((r) => r.id !== newRipple.id)), 600);
+      onClick?.();
+    };
+
+    return (
+      <motion.button
+        ref={ref}
+        className={cn(animatedButtonVariants({ variant, size }), className)}
+        variants={buttonVariants}
+        initial="initial"
+        whileHover={!disabled && !loading ? "hover" : "initial"}
+        whileTap={!disabled && !loading ? "tap" : "initial"}
+        onHoverStart={() => setIsHovered(true)}
+        onHoverEnd={() => setIsHovered(false)}
+        onClick={handleClick}
+        disabled={disabled || loading}
+        aria-label={label}
+        aria-busy={loading}
+        {...props}
+      >
+        {/* Shimmer */}
+        <motion.div
+          className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
+          variants={shimmerVariants}
+          initial="initial"
+          animate={isHovered ? "animate" : "initial"}
+        />
+
+        {/* Glow */}
+        {isHovered && (
+          <motion.div
+            className="absolute inset-0 rounded-2xl bg-white/5 blur-xl"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.3 }}
+          />
+        )}
+
+        {/* Content */}
+        <span className="relative z-10 flex items-center gap-2">
+          {loading ? (
+            <motion.div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+          ) : iconLeft && <span>{iconLeft}</span>}
+          <span>{label}</span>
+          {!loading && iconRight && <span>{iconRight}</span>}
+        </span>
+
+        {/* Ripples */}
+        {ripples.map((ripple) => (
+          <motion.span
+            key={ripple.id}
+            className="absolute rounded-full bg-white/20 pointer-events-none"
+            style={{ left: ripple.x, top: ripple.y }}
+            initial={{ width: 0, height: 0, x: "-50%", y: "-50%", opacity: 1 }}
+            animate={{ width: 150, height: 150, opacity: 0 }}
+            transition={{ duration: 0.6, ease: "easeOut" }}
+          />
+        ))}
+      </motion.button>
+    );
+  }
+);
+
+AnimatedButton.displayName = "AnimatedButton";
+export { AnimatedButton, animatedButtonVariants };
