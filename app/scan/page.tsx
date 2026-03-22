@@ -94,7 +94,10 @@ export default function ScanPage() {
         }
       );
       const data = await res.json();
+      console.log("GEMINI STATUS:", res.status);
+      console.log("GEMINI DATA:", JSON.stringify(data).slice(0, 500));
       const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+      console.log("GEMINI TEXT:", text);
       const match = text.match(/\{[\s\S]*\}/);
 
       let result = { risk: "MODERATE", confidence: 74, hemoglobin: 10.8, message: "Analysis complete. See a doctor for confirmation." };
@@ -122,7 +125,8 @@ export default function ScanPage() {
         location: 'Kanchipuram'
       }]);
 
-    } catch {
+    } catch (err) {
+      console.log("GEMINI CATCH ERROR:", err);
       const fallback = { risk: "MODERATE", confidence: 74, hemoglobin: 10.8, message: "Analysis complete. See a doctor for confirmation.", pregnancyMode, symptomScore };
       localStorage.setItem("anaemia_result", JSON.stringify(fallback));
       await supabase.from('scans').insert([{ risk: fallback.risk, confidence: fallback.confidence, hemoglobin: fallback.hemoglobin, message: fallback.message, location: 'Kanchipuram' }]);
