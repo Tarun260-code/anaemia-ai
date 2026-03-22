@@ -64,13 +64,22 @@ export default function ScanPage() {
 
   const handleFile = async (file: File) => {
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = async (e) => {
-      const dataUrl = e.target?.result as string;
+    const img = new Image();
+    const objectUrl = URL.createObjectURL(file);
+    img.onload = async () => {
+      const canvas = document.createElement("canvas");
+      const MAX = 800;
+      const ratio = Math.min(MAX / img.width, MAX / img.height);
+      canvas.width = img.width * ratio;
+      canvas.height = img.height * ratio;
+      const ctx = canvas.getContext("2d")!;
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      const dataUrl = canvas.toDataURL("image/jpeg", 0.8);
       setPreview(dataUrl);
+      URL.revokeObjectURL(objectUrl);
       await analyse(dataUrl.split(",")[1]);
     };
-    reader.readAsDataURL(file);
+    img.src = objectUrl;
   };
 
   const analyse = async (base64: string) => {
