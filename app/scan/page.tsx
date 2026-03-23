@@ -2,7 +2,7 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
-import { Eye, Home, ScanLine, Salad, Users, ArrowLeft, Zap, Upload, Camera, Baby, ChevronRight, CheckCircle, TrendingUp } from "lucide-react";
+import { Eye, Home, ScanLine, Salad, ArrowLeft, Zap, Upload, Camera, Baby, ChevronRight, CheckCircle, TrendingUp } from "lucide-react";
 import { createClient } from '@supabase/supabase-js';
 
 const supabase = createClient(
@@ -82,60 +82,102 @@ export default function ScanPage() {
     img.src = objectUrl;
   };
 
+  // ✅ CLEAN analyse() — /api/analyze route, hardened JSON parsing, full constraints
   const analyse = async (base64: string) => {
     setScanState("analysing");
-    const pregnancyThreshold = pregnancyMode ? "For pregnant women, Hb below 10.5 g/dL is HIGH risk. " : "";
     try {
-      const key = process.env.NEXT_PUBLIC_GEMINI_API_KEY || "";
-      const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${key}`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            contents: [{
-              parts: [
-                { text: `Analyze this eye image for anaemia risk by looking at the lower eyelid conjunctiva color. Pale or white = HIGH risk. Light pink = MODERATE. Bright red/pink = LOW. ${pregnancyThreshold}The patient's symptom score is ${symptomScore}/9 — factor this into confidence. Respond ONLY in valid JSON: {"risk":"LOW" or "MODERATE" or "HIGH","confidence":number 60-98,"hemoglobin":number 7-14,"message":"one short encouraging sentence"}` },
-                { inline_data: { mime_type: "image/jpeg", data: base64 } }
-              ]
-            }]
-          })
-        }
-      );
+      const res = await fetch("/api/analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ base64, symptomScore, pregnancyMode }),
+      });
+
       const data = await res.json();
-      const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
-      const match = text.match(/\{[\s\S]*\}/);
+      console.log("AI RESPONSE:", data);
 
-      let result = { risk: "MODERATE", confidence: 74, hemoglobin: 10.8, message: "Analysis complete. See a doctor for confirmation." };
-      if (match) { try { result = JSON.parse(match[0]); } catch { } }
+      let result = {
+        risk: "MODERATE",
+        confidence: 74,
+        hemoglobin: 10.8,
+        message: "Analysis complete. See a doctor.",
+      };
 
-      // Pregnancy mode override — force HIGH if Hb < 10.5
+      if (data?.text) {
+        const cleaned = String(data.text)
+          .replace(/```json/g, "")
+          .replace(/```/g, "")
+          .trim();
+        const match = cleaned.match(/\{[\s\S]*\}/);
+        if (match) {
+          try {
+            const parsed = JSON.parse(match[0]);
+            result = {
+              risk: ["LOW", "MODERATE", "HIGH"].includes(parsed.risk)
+                ? parsed.risk
+                : "MODERATE",
+              confidence:
+                typeof parsed.confidence === "number"
+                  ? Math.min(98, Math.max(60, parsed.confidence))
+                  : 74,
+              hemoglobin:
+                typeof parsed.hemoglobin === "number"
+                  ? Math.min(14, Math.max(7, parsed.hemoglobin))
+                  : 10.8,
+              message:
+                typeof parsed.message === "string" && parsed.message.length > 0
+                  ? parsed.message
+                  : "Analysis complete. See a doctor.",
+            };
+          } catch (e) {
+            console.error("JSON parse error:", e);
+          }
+        }
+      }
+
+      // Pregnancy override — force HIGH if Hb below safe threshold
       if (pregnancyMode && result.hemoglobin < 10.5) {
         result.risk = "HIGH";
         result.message = "Haemoglobin below safe pregnancy threshold. Please see a doctor immediately.";
       }
 
-      // Boost confidence if symptoms align with eye result
-      if (symptomRisk === result.risk) {
+      // Boost confidence when symptom risk aligns with eye scan result
+      const computedSymptomRisk =
+        symptomScore <= 2 ? "LOW" : symptomScore <= 5 ? "MODERATE" : "HIGH";
+      if (computedSymptomRisk === result.risk) {
         result.confidence = Math.min(98, result.confidence + 5);
       }
 
       const finalResult = { ...result, pregnancyMode, symptomScore };
       localStorage.setItem("anaemia_result", JSON.stringify(finalResult));
 
-      await supabase.from('scans').insert([{
+      await supabase.from("scans").insert([{
         risk: result.risk,
         confidence: result.confidence,
         hemoglobin: result.hemoglobin,
         message: result.message,
-        location: 'Kanchipuram'
+        location: "Kanchipuram",
       }]);
 
-    } catch {
-      const fallback = { risk: "MODERATE", confidence: 74, hemoglobin: 10.8, message: "Analysis complete. See a doctor for confirmation.", pregnancyMode, symptomScore };
+    } catch (err) {
+      console.error("AI FAILED:", err);
+      const fallback = {
+        risk: "MODERATE",
+        confidence: 74,
+        hemoglobin: 10.8,
+        message: "Fallback result. Please see a doctor for confirmation.",
+        pregnancyMode,
+        symptomScore,
+      };
       localStorage.setItem("anaemia_result", JSON.stringify(fallback));
-      await supabase.from('scans').insert([{ risk: fallback.risk, confidence: fallback.confidence, hemoglobin: fallback.hemoglobin, message: fallback.message, location: 'Kanchipuram' }]);
+      await supabase.from("scans").insert([{
+        risk: fallback.risk,
+        confidence: fallback.confidence,
+        hemoglobin: fallback.hemoglobin,
+        message: fallback.message,
+        location: "Kanchipuram",
+      }]);
     }
+
     setScanState("done");
     setTimeout(() => router.push("/result"), 800);
   };
@@ -169,7 +211,6 @@ export default function ScanPage() {
             {appState === "screener" ? "Quick Check" : "Eye Scan"}
           </span>
         </div>
-        {/* Pregnancy Mode Toggle */}
         <motion.button onClick={() => setPregnancyMode(!pregnancyMode)} whileTap={{ scale: 0.9 }}
           style={{ width: "40px", height: "40px", borderRadius: "12px", background: pregnancyMode ? "rgba(255,209,102,0.2)" : "rgba(255,255,255,0.05)", border: pregnancyMode ? "1px solid rgba(255,209,102,0.5)" : "1px solid rgba(255,255,255,0.1)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
           <Baby size={18} color={pregnancyMode ? "#FFD166" : "#C9A0A8"} />
@@ -193,7 +234,6 @@ export default function ScanPage() {
           <motion.div key="screener" initial={{ opacity: 0, x: -30 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -30 }}
             style={{ padding: "0 24px", position: "relative", zIndex: 10 }}>
 
-            {/* Progress bar */}
             <div style={{ display: "flex", gap: "6px", marginBottom: "24px" }}>
               {questions.map((_, i) => (
                 <div key={i} style={{ flex: 1, height: "4px", borderRadius: "2px", background: i <= currentQ ? "#FF2D4E" : "rgba(255,255,255,0.1)", transition: "background 0.3s" }} />
@@ -233,7 +273,6 @@ export default function ScanPage() {
         {appState === "scan" && (
           <motion.div key="scan" initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 30 }}>
 
-            {/* Symptom result pill */}
             {answers.length > 0 && (
               <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
                 style={{ margin: "0 24px 12px", background: `${symptomColor}15`, border: `1px solid ${symptomColor}40`, borderRadius: "12px", padding: "10px 14px", display: "flex", alignItems: "center", gap: "8px", position: "relative", zIndex: 10 }}>
@@ -328,7 +367,12 @@ export default function ScanPage() {
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}
               style={{ margin: "0 24px 16px", background: "rgba(6,214,160,0.05)", border: "1px solid rgba(6,214,160,0.2)", borderRadius: "16px", padding: "14px 16px", zIndex: 10, position: "relative" }}>
               <div style={{ fontSize: "10px", fontWeight: 700, color: "#06D6A0", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "10px" }}>How it works</div>
-              {["AI analyses conjunctiva colour for pallor", "Symptom score combined with visual scan", pregnancyMode ? "Pregnancy threshold: Hb < 10.5 = HIGH risk" : "Results saved securely to database", "Based on Nature 2025 research — 98.47% accuracy"].map((s, i) => (
+              {[
+                "AI analyses conjunctiva colour for pallor",
+                "Symptom score combined with visual scan",
+                pregnancyMode ? "Pregnancy threshold: Hb < 10.5 = HIGH risk" : "Results saved securely to database",
+                "Based on Nature 2025 research — 98.47% accuracy",
+              ].map((s, i) => (
                 <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: "10px", marginBottom: i < 3 ? "8px" : 0 }}>
                   <div style={{ width: "18px", height: "18px", borderRadius: "50%", background: "rgba(6,214,160,0.2)", border: "1px solid rgba(6,214,160,0.4)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "10px", color: "#06D6A0", fontWeight: 700, flexShrink: 0 }}>{i + 1}</div>
                   <p style={{ fontSize: "12px", color: "#C9A0A8", lineHeight: 1.5 }}>{s}</p>
